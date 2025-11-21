@@ -68,7 +68,14 @@ function App() {
                     console.log('Updating myPlayer to:', me);
                     setMyPlayer(me);
                 } else {
-                    console.warn('Could not find self in players list');
+                    // Fallback: if 'me' isn't found in the players list (which might just be names/chars),
+                    // construct a temporary object with the character from the dossier.
+                    console.warn('Could not find self in players list, using dossier data');
+                    setMyPlayer({
+                        id: s.id,
+                        character: data.character,
+                        journal: data.journal
+                    });
                 }
             }
             setIsJournalOpen(true);
