@@ -246,13 +246,56 @@ Keep it SHORT (1-2 sentences). Be HUMAN. Show EMOTION. Stay in CHARACTER.`;
   try {
     const completion = await openai.createChatCompletion({
       model: "gpt-4o-mini",
-      messages: [{ role: "system", content: systemPrompt }],
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `You are ${character.role}. Respond to the conversation above as this character would. Remember: you are NOT an AI assistant. You are a human in danger. Keep it short and emotional.` }
+      ],
       temperature: 0.95, // Increased for more natural variation
       max_tokens: 50, // Reduced to force brevity
       presence_penalty: 0.6, // Encourage topic diversity
       frequency_penalty: 0.3, // Reduce repetition
     });
-    return completion.data.choices[0].message.content.trim();
+
+    let response = completion.data.choices[0].message.content.trim();
+
+    // POST-PROCESSING: Filter out any AI identity leaks
+    const bannedPhrases = [
+      /AI Assistant/gi,
+      /I'm an AI/gi,
+      /I am an AI/gi,
+      /as an AI/gi,
+      /language model/gi,
+      /I'm here to help/gi,
+      /I apologize/gi,
+      /sorry for/gi,
+      /my apologies/gi,
+    ];
+
+    // Check if response contains banned phrases
+    let containsBannedPhrase = false;
+    for (const pattern of bannedPhrases) {
+      if (pattern.test(response)) {
+        containsBannedPhrase = true;
+        console.warn(`⚠️ AI leaked identity with phrase matching: ${pattern}. Response: "${response}"`);
+        break;
+      }
+    }
+
+    // If banned phrase detected, use a safe fallback response
+    if (containsBannedPhrase) {
+      const fallbacks = [
+        "what? no...",
+        "idk what you're talking about",
+        "that doesn't make sense",
+        "why are you asking me that?",
+        "...okay?",
+        "whatever man",
+      ];
+      response = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+      console.log(`✅ Replaced with safe fallback: "${response}"`);
+    }
+
+    return response;
   } catch (error) {
     console.error("Error generating AI response:", error);
     return "...what?";
