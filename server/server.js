@@ -122,7 +122,7 @@ Constraints:
 
   try {
     const completion = await openai.createChatCompletion({
-      model: "gpt-4", // or gpt-3.5-turbo
+      model: "gpt-4o-mini", // or gpt-3.5-turbo
       messages: [{ role: "system", content: systemPrompt }],
       temperature: 0.8,
     });
@@ -156,7 +156,7 @@ Reply with a single short message. Do not be too formal. Mimic human chat patter
 
   try {
     const completion = await openai.createChatCompletion({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }],
       temperature: 0.9,
       max_tokens: 60,

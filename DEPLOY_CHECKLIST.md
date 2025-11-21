@@ -2,7 +2,7 @@
 
 ## Before You Start
 - [ ] Get OpenAI API key from platform.openai.com
-- [ ] Create GitHub repo
+- [x] Create GitHub repo
 - [ ] Sign up for Render.com
 - [ ] Sign up for Vercel.com
 
