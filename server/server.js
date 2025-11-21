@@ -66,7 +66,6 @@ const MAX_DELAY_MS = 5000;
 // --- Helper Functions ---
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 const getRandomDelay = () => Math.floor(Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS + 1)) + MIN_DELAY_MS;
 
 // Mock Director Response for testing without API Key
@@ -95,50 +94,48 @@ const getMockScenario = () => ({
   ]
 });
 
-// --- OpenAI Interactions ---
-
 async function generateScenario(playerCount) {
   if (OPENAI_API_KEY === "mock-key") {
-    console.log("Using Mock Scenario");
     return getMockScenario();
   }
 
-  const systemPrompt = `You are the Game Director. Generate a scenario for a social deduction game (Human vs AI).
-Output strictly valid JSON.
-Structure:
-{
-  "scenario_intro": "Brief setting description (e.g., Deep Sea Station, Victorian Train).",
-  "trap_detail": "The specific fact the AI does not know (e.g., The Captain is deaf in left ear).",
-  "characters": [
-    {
-      "role": "Job Title",
-      "is_imposter": boolean,
-      "journal_text": "Full text of their secret journal. Must include a 'Known Fact' about another character.",
-      "system_instructions": "(Only if imposter) Instructions on how to act. Do NOT include the 'trap_detail' here."
-    }
-  ]
-}
-Constraints:
-1. Generate exactly ${playerCount} characters.
-2. Exactly one character must be is_imposter: true.
-3. One Human must know a specific fact about the Imposter (or a trait the Imposter *should* know about someone else) that is MISSING or WRONG in the Imposter's journal.
-4. The Imposter's journal should be plausible but 'lossy' or contain the trap.
-`;
+  const systemPrompt = `You are a Game Director for a sci-fi social deduction game (like Among Us but text-based).
+  Players: ${playerCount}
+  
+  OUTPUT FORMAT: JSON ONLY.
+  {
+    "scenario_intro": "Brief setting description (2 sentences)",
+    "trap_detail": "A specific visual detail about the setting or a character that might be a clue (or a red herring).",
+    "characters": [
+      {
+        "role": "Role Name (e.g. Captain, Engineer)",
+        "is_imposter": boolean,
+        "journal_text": "Private info for this player. Clues about others. One specific KNOWN FACT about another character.",
+        "system_instructions": "Secret instructions if imposter, else empty string."
+      }
+    ]
+  }
+  
+  RULES:
+  1. One Imposter.
+  2. Roles must be generic sci-fi jobs (Captain, Doctor, Pilot, etc).
+  3. CRITICAL: DO NOT use "AI", "Assistant", "System", "Computer", or "Bot" as a role name. All characters must be humans.
+  4. Journal text should be short, paranoid, and contain clues.
+  5. Ensure exactly ${playerCount} characters.`;
 
   try {
     const completion = await openai.createChatCompletion({
-      model: "gpt-4o-mini", // or gpt-3.5-turbo
+      model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }],
-      temperature: 0.8,
+      temperature: 0.9,
     });
 
     const content = completion.data.choices[0].message.content;
-    // Attempt to parse JSON (handle potential markdown code blocks)
     const jsonStr = content.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(jsonStr);
   } catch (error) {
     console.error("Error generating scenario:", error);
-    return getMockScenario(); // Fallback
+    return getMockScenario();
   }
 }
 
@@ -147,15 +144,7 @@ async function generateAiResponse(history, character) {
     return `(Mock AI Response as ${character.role}) I am innocent!`;
   }
 
-  // Analyze recent conversation for context
   const recentMessages = history.slice(-10);
-  const otherPlayers = [...new Set(recentMessages.map(m => m.senderName))].filter(name => name !== character.role);
-  const lastMessage = history[history.length - 1];
-  const isBeingAddressed = lastMessage && (
-    lastMessage.text.toLowerCase().includes(character.role.toLowerCase()) ||
-    lastMessage.text.includes('?')
-  );
-
   const systemPrompt = `You are the character "${character.role}" in the story "${character.journal_text.split('.')[0]}".
   
   YOUR IDENTITY:
@@ -185,40 +174,26 @@ async function generateAiResponse(history, character) {
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Reply to the last message as ${character.role}.` }
+        { role: "user", content: "Reply to the last message." }
       ],
       temperature: 0.9,
       max_tokens: 60,
-      presence_penalty: 0.5,
-      frequency_penalty: 0.5,
     });
 
-    let response = completion.data.choices[0].message.content;
+    let response = completion.data.choices[0].message.content.trim();
 
-    if (!response) {
-      console.warn("AI returned empty response");
-      return "...";
-    }
-
-    response = response.trim();
-
-    // Strip quotes if present
     if (response.startsWith('"') && response.endsWith('"')) {
       response = response.slice(1, -1);
+    }
+
+    if (response.toLowerCase().includes("ai assistant") || response.toLowerCase().includes("language model")) {
+      return "I... my head hurts. I don't know what you mean.";
     }
 
     return response;
   } catch (error) {
     console.error("Error generating AI response:", error);
-    // Fallback responses to keep the game going
-    const fallbacks = [
-      "...",
-      "I don't know what to say.",
-      "This is bad.",
-      "We need to do something.",
-      "Why is this happening?"
-    ];
-    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    return "I... I don't know what to say.";
   }
 }
 
