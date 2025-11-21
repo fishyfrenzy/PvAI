@@ -139,19 +139,19 @@ async function generateScenario(playerCount) {
   }
 }
 
-async function generateAiResponse(history, character) {
+async function generateAiResponse(history, player) {
   if (OPENAI_API_KEY === "mock-key") {
-    return `(Mock AI Response as ${character.role}) I am innocent!`;
+    return `(Mock AI Response as ${player.character}) I am innocent!`;
   }
 
   const recentMessages = history.slice(-10);
-  const systemPrompt = `You are the character "${character.role}" in the story "${character.journal_text.split('.')[0]}".
+  const systemPrompt = `You are the character "${player.character}" in the story "${player.journal.split('.')[0]}".
   
   YOUR IDENTITY:
-  - Name/Role: ${character.role}
-  - Background: ${character.journal_text}
+  - Name/Role: ${player.character}
+  - Background: ${player.journal}
   - Current Situation: You are trapped with others. There is an Imposter among you.
-  - Objective: ${character.system_instructions || 'Survive. Find the Imposter. Do not reveal you are an AI.'}
+  - Objective: ${player.system_instructions || 'Survive. Find the Imposter. Do not reveal you are an AI.'}
   
   STRICT ROLEPLAY RULES:
   1. You are a HUMAN character. You have feelings, fears, and a personality.
@@ -177,7 +177,7 @@ async function generateAiResponse(history, character) {
         { role: "user", content: "Reply to the last message." }
       ],
       temperature: 0.9,
-      max_tokens: 60,
+      max_tokens: 200,
     });
 
     let response = completion.data.choices[0].message.content.trim();
@@ -681,4 +681,5 @@ async function checkForAiResponse(roomId) {
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`OpenAI API Key Status: ${OPENAI_API_KEY === 'mock-key' ? 'USING MOCK KEY' : 'KEY PRESENT'}`);
 });
