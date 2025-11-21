@@ -661,7 +661,19 @@ async function checkForAiResponse(roomId) {
   try {
     await sleep(1000 + Math.random() * 2000);
 
+    // Re-check if room still exists and game is still playing after sleep
+    if (!rooms[roomId] || rooms[roomId].gameState !== 'PLAYING') {
+      room.aiProcessing = false;
+      return;
+    }
+
     const responseText = await generateAiResponse(room.chatHistory, aiPlayer);
+
+    // Final check before sending message
+    if (!rooms[roomId] || rooms[roomId].gameState !== 'PLAYING') {
+      room.aiProcessing = false;
+      return;
+    }
 
     aiPlayer.lastMessageTime = Date.now();
     const delay = getRandomDelay();
@@ -675,13 +687,18 @@ async function checkForAiResponse(roomId) {
     };
 
     setTimeout(() => {
-      io.to(roomId).emit('receive_message', messageData);
-      room.chatHistory.push(messageData);
+      // One more check before emitting
+      if (rooms[roomId] && rooms[roomId].gameState === 'PLAYING') {
+        io.to(roomId).emit('receive_message', messageData);
+        rooms[roomId].chatHistory.push(messageData);
+      }
     }, delay);
   } catch (error) {
     console.error(`Error in checkForAiResponse for room ${roomId}:`, error);
   } finally {
-    room.aiProcessing = false;
+    if (rooms[roomId]) {
+      rooms[roomId].aiProcessing = false;
+    }
   }
 }
 

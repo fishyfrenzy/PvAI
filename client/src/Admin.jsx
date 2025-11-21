@@ -11,20 +11,31 @@ function Admin() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (isAuthenticated && !socket) {
+        if (isAuthenticated) {
             const newSocket = io(SERVER_URL);
             setSocket(newSocket);
 
-            newSocket.on('admin_rooms_update', (roomsData) => {
-                setRooms(roomsData);
+            newSocket.on('connect', () => {
+                console.log('Admin connected');
+                newSocket.emit('admin_auth', adminKey);
+                newSocket.emit('admin_get_rooms');
             });
 
-            newSocket.emit('admin_auth', adminKey);
-            newSocket.emit('admin_get_rooms');
+            newSocket.on('admin_rooms_update', (roomsData) => {
+                console.log('Rooms update:', roomsData);
+                setRooms(roomsData || []);
+            });
+
+            newSocket.on('connect_error', (err) => {
+                console.error('Admin connection error:', err);
+                setError('Connection error. Please try again.');
+            });
 
             // Refresh every 5 seconds
             const interval = setInterval(() => {
-                newSocket.emit('admin_get_rooms');
+                if (newSocket.connected) {
+                    newSocket.emit('admin_get_rooms');
+                }
             }, 5000);
 
             return () => {
