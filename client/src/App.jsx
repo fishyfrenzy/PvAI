@@ -19,10 +19,27 @@ function App() {
     const [isJournalOpen, setIsJournalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('CHAT'); // CHAT, VOTING
 
+    const [isConnected, setIsConnected] = useState(socket.connected);
+
     useEffect(() => {
-        socket.on('connect', () => {
+        function onConnect() {
             console.log('Connected to server');
-        });
+            setIsConnected(true);
+        }
+
+        function onDisconnect() {
+            console.log('Disconnected from server');
+            setIsConnected(false);
+        }
+
+        function onConnectError(err) {
+            console.log('Connection error:', err);
+            setIsConnected(false);
+        }
+
+        socket.on('connect', onConnect);
+        socket.on('disconnect', onDisconnect);
+        socket.on('connect_error', onConnectError);
 
         socket.on('lobby_update', (updatedPlayers) => {
             setPlayers(updatedPlayers);
@@ -60,7 +77,9 @@ function App() {
         });
 
         return () => {
-            socket.off('connect');
+            socket.off('connect', onConnect);
+            socket.off('disconnect', onDisconnect);
+            socket.off('connect_error', onConnectError);
             socket.off('lobby_update');
             socket.off('game_state_change');
             socket.off('game_started');
@@ -160,6 +179,13 @@ function App() {
                 <div className="scanline"></div>
                 {renderScreenContent()}
             </div>
+
+            {/* Connection Status Overlay */}
+            {!isConnected && (
+                <div className="absolute top-4 right-4 bg-red-900/80 border border-red-500 text-red-100 px-4 py-2 rounded font-mono text-xs animate-pulse z-50">
+                    ⚠ NO UPLINK
+                </div>
+            )}
 
             {/* Journal Trigger Area - Always visible for debugging */}
             <div
