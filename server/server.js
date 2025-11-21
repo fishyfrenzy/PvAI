@@ -406,35 +406,32 @@ io.on('connection', (socket) => {
     };
 
     const allPlayerIds = Object.keys(room.players);
+    console.log(`[GAME START] Room ${roomId}: Generating scenario for ${allPlayerIds.length} players`);
     const scenarioData = await generateScenario(allPlayerIds.length);
     room.scenario = scenarioData;
 
-    // 2. Assign Roles
-    const shuffledChars = room.scenario.characters.sort(() => 0.5 - Math.random());
-
-    // Assign to players
-    allPlayerIds.forEach((pid, index) => {
-      if (shuffledChars[index]) {
-        room.players[pid].character = shuffledChars[index].role;
-        room.players[pid].journal = shuffledChars[index].journal_text;
-      }
-    });
-
-    // Correct assignment strategy:
+    // Assign roles - Imposter to Bot, Humans to real players
     const imposterChar = room.scenario.characters.find(c => c.is_imposter);
     const humanChars = room.scenario.characters.filter(c => !c.is_imposter);
+
+    console.log(`[GAME START] Room ${roomId}: Found imposter character: ${imposterChar.role}`);
+    console.log(`[GAME START] Room ${roomId}: Found ${humanChars.length} human characters`);
 
     // Assign Imposter to Bot
     room.players[room.aiBotId].character = imposterChar.role;
     room.players[room.aiBotId].journal = imposterChar.journal_text;
     room.players[room.aiBotId].system_instructions = imposterChar.system_instructions;
+    console.log(`[GAME START] Room ${roomId}: Assigned ${imposterChar.role} to bot ${room.aiBotId}`);
 
-    // Assign Humans
+    // Assign Humans to real players
     const humanIds = allPlayerIds.filter(id => id !== room.aiBotId);
     humanIds.forEach((pid, idx) => {
       if (humanChars[idx]) {
         room.players[pid].character = humanChars[idx].role;
         room.players[pid].journal = humanChars[idx].journal_text;
+        console.log(`[GAME START] Room ${roomId}: Assigned ${humanChars[idx].role} to player ${pid} (${room.players[pid].name})`);
+      } else {
+        console.error(`[GAME START] Room ${roomId}: ERROR - No character for player ${pid}!`);
       }
     });
 
@@ -454,6 +451,7 @@ io.on('connection', (socket) => {
           players: Object.values(room.players).map(p => ({ id: p.id, character: p.character })) // Only character names, no user names
         };
         console.log(`[GAME START] Emitting game_started to player ${pid} (${room.players[pid].name}) as character ${room.players[pid].character}`);
+        console.log(`[GAME START] Dossier data:`, JSON.stringify(dossierData, null, 2));
         socketDest.emit('game_started', dossierData);
       } else {
         console.log(`[GAME START] WARNING: Socket not found for player ${pid}`);
@@ -461,8 +459,10 @@ io.on('connection', (socket) => {
     });
 
     // Update all clients with the new player data (including characters)
+    const playersWithCharacters = Object.values(room.players);
     console.log(`[GAME START] Room ${roomId}: Sending lobby_update with character assignments`);
-    io.to(roomId).emit('lobby_update', Object.values(room.players));
+    console.log(`[GAME START] Players being sent:`, playersWithCharacters.map(p => ({ id: p.id, name: p.name, character: p.character, isBot: p.isBot })));
+    io.to(roomId).emit('lobby_update', playersWithCharacters);
 
     console.log(`[GAME START] Room ${roomId}: Emitting game_state_change to PLAYING`);
     io.to(roomId).emit('game_state_change', 'PLAYING');
