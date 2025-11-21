@@ -53,19 +53,35 @@ function App() {
         });
 
         socket.on('game_started', (data) => {
-            console.log("Game Started Event Received", data);
+            console.log("=== GAME STARTED EVENT ===");
+            console.log("Data received:", data);
+            console.log("My socket ID:", socket.id);
+            console.log("Players in data:", data.players);
+
             setDossier(data);
             setGameState('PLAYING');
+
             if (data.players) {
+                console.log("Setting players:", data.players);
                 setPlayers(data.players);
+
                 // Update myPlayer with character info
                 const me = data.players.find(p => p.id === socket.id);
+                console.log("Found myself in players:", me);
+
                 if (me) {
-                    setMyPlayer({ ...myPlayer, character: data.character, journal: data.journal });
+                    const updatedPlayer = { ...myPlayer, character: data.character, journal: data.journal };
+                    console.log("Updating myPlayer to:", updatedPlayer);
+                    setMyPlayer(updatedPlayer);
+                } else {
+                    console.warn("WARNING: Could not find myself in players array!");
                 }
             }
+
             // Auto open journal on start
+            console.log("Opening journal");
             setIsJournalOpen(true);
+            console.log("=== END GAME STARTED EVENT ===");
         });
 
         socket.on('receive_message', (msg) => {

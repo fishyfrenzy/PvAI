@@ -439,8 +439,12 @@ io.on('connection', (socket) => {
     });
 
     // Emit individual dossiers to players
+    console.log(`[GAME START] Room ${roomId}: Sending dossiers to ${allPlayerIds.length} players`);
     allPlayerIds.forEach(pid => {
-      if (room.players[pid].isBot) return;
+      if (room.players[pid].isBot) {
+        console.log(`[GAME START] Skipping bot ${pid}`);
+        return;
+      }
       const socketDest = io.sockets.sockets.get(pid);
       if (socketDest) {
         const dossierData = {
@@ -449,12 +453,14 @@ io.on('connection', (socket) => {
           journal: room.players[pid].journal,
           players: Object.values(room.players).map(p => ({ id: p.id, character: p.character })) // Only character names, no user names
         };
-        console.log(`Emitting game_started to player ${pid} (${room.players[pid].name}) in room ${roomId}`);
+        console.log(`[GAME START] Emitting game_started to player ${pid} (${room.players[pid].name}) as character ${room.players[pid].character}`);
         socketDest.emit('game_started', dossierData);
+      } else {
+        console.log(`[GAME START] WARNING: Socket not found for player ${pid}`);
       }
     });
 
-    console.log(`Room ${roomId}: Emitting game_state_change to PLAYING`);
+    console.log(`[GAME START] Room ${roomId}: Emitting game_state_change to PLAYING`);
     io.to(roomId).emit('game_state_change', 'PLAYING');
   });
 
@@ -641,21 +647,47 @@ io.on('connection', (socket) => {
 // --- AI Logic Loop ---
 
 async function checkForAiResponse(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
+  console.log(`[AI] checkForAiResponse called for room ${roomId}`);
 
-  if (room.aiProcessing) return;
-  if (room.gameState !== 'PLAYING') return;
+  const room = rooms[roomId];
+  if (!room) {
+    console.log(`[AI] Room ${roomId} not found`);
+    return;
+  }
+
+  if (room.aiProcessing) {
+    console.log(`[AI] Room ${roomId} - AI already processing`);
+    return;
+  }
+
+  if (room.gameState !== 'PLAYING') {
+    console.log(`[AI] Room ${roomId} - Game state is ${room.gameState}, not PLAYING`);
+    return;
+  }
 
   const aiPlayer = room.players[room.aiBotId];
-  if (!aiPlayer) return;
+  if (!aiPlayer) {
+    console.log(`[AI] Room ${roomId} - AI player not found. Bot ID: ${room.aiBotId}`);
+    return;
+  }
+
+  console.log(`[AI] Room ${roomId} - AI player found: ${aiPlayer.character}`);
 
   const now = Date.now();
-  if (now - aiPlayer.lastMessageTime < RATE_LIMIT_MS) return;
+  const timeSinceLastMessage = now - aiPlayer.lastMessageTime;
+  if (timeSinceLastMessage < RATE_LIMIT_MS) {
+    console.log(`[AI] Room ${roomId} - Rate limited. Time since last: ${timeSinceLastMessage}ms, need: ${RATE_LIMIT_MS}ms`);
+    return;
+  }
 
   // Increased probability from 0.3 to 0.5 to make it feel more responsive
-  if (Math.random() > 0.5) return;
+  const shouldRespond = Math.random() <= 0.5;
+  if (!shouldRespond) {
+    console.log(`[AI] Room ${roomId} - Random check failed (50% chance)`);
+    return;
+  }
 
+  console.log(`[AI] Room ${roomId} - Starting AI response generation...`);
   room.aiProcessing = true;
 
   try {
@@ -663,14 +695,18 @@ async function checkForAiResponse(roomId) {
 
     // Re-check if room still exists and game is still playing after sleep
     if (!rooms[roomId] || rooms[roomId].gameState !== 'PLAYING') {
+      console.log(`[AI] Room ${roomId} - Room deleted or game ended during sleep`);
       room.aiProcessing = false;
       return;
     }
 
+    console.log(`[AI] Room ${roomId} - Generating response with ${room.chatHistory.length} messages in history`);
     const responseText = await generateAiResponse(room.chatHistory, aiPlayer);
+    console.log(`[AI] Room ${roomId} - Generated response: "${responseText}"`);
 
     // Final check before sending message
     if (!rooms[roomId] || rooms[roomId].gameState !== 'PLAYING') {
+      console.log(`[AI] Room ${roomId} - Room deleted or game ended after generation`);
       room.aiProcessing = false;
       return;
     }
@@ -686,18 +722,23 @@ async function checkForAiResponse(roomId) {
       timestamp: Date.now()
     };
 
+    console.log(`[AI] Room ${roomId} - Sending message after ${delay}ms delay`);
     setTimeout(() => {
       // One more check before emitting
       if (rooms[roomId] && rooms[roomId].gameState === 'PLAYING') {
         io.to(roomId).emit('receive_message', messageData);
         rooms[roomId].chatHistory.push(messageData);
+        console.log(`[AI] Room ${roomId} - Message sent successfully`);
+      } else {
+        console.log(`[AI] Room ${roomId} - Room deleted or game ended before emit`);
       }
     }, delay);
   } catch (error) {
-    console.error(`Error in checkForAiResponse for room ${roomId}:`, error);
+    console.error(`[AI] Error in checkForAiResponse for room ${roomId}:`, error);
   } finally {
     if (rooms[roomId]) {
       rooms[roomId].aiProcessing = false;
+      console.log(`[AI] Room ${roomId} - AI processing complete`);
     }
   }
 }
