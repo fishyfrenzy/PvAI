@@ -18,28 +18,28 @@ const JournalModal = ({ isOpen, onClose, character, journal, scenarioIntro }) =>
         });
     };
 
-    const handleMouseMove = (e) => {
-        if (!isDragging) return;
-        setPosition({
-            x: e.clientX - dragStart.x,
-            y: e.clientY - dragStart.y
-        });
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
     React.useEffect(() => {
+        const handleMove = (e) => {
+            if (!isDragging) return;
+            setPosition({
+                x: e.clientX - dragStart.x,
+                y: e.clientY - dragStart.y
+            });
+        };
+
+        const handleUp = () => {
+            setIsDragging(false);
+        };
+
         if (isDragging) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
+            window.addEventListener('mousemove', handleMove);
+            window.addEventListener('mouseup', handleUp);
             return () => {
-                window.removeEventListener('mousemove', handleMouseMove);
-                window.removeEventListener('mouseup', handleMouseUp);
+                window.removeEventListener('mousemove', handleMove);
+                window.removeEventListener('mouseup', handleUp);
             };
         }
-    }, [isDragging, dragStart]);
+    }, [isDragging, dragStart.x, dragStart.y]);
 
     const isNotes = page === 'NOTES';
 
