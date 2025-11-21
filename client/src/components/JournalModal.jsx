@@ -7,8 +7,6 @@ const JournalModal = ({ isOpen, onClose, character, journal, scenarioIntro }) =>
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-    if (!isOpen) return null;
-
     const handleMouseDown = (e) => {
         if (e.target.closest('.journal-content')) return; // Don't drag if clicking content
         setIsDragging(true);
@@ -41,10 +39,13 @@ const JournalModal = ({ isOpen, onClose, character, journal, scenarioIntro }) =>
         }
     }, [isDragging, dragStart.x, dragStart.y]);
 
+    if (!isOpen) return null;
+
     const isNotes = page === 'NOTES';
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
+            {/* ... rest of the JSX ... */}
             <div
                 className="relative paper-texture p-8 transform shadow-2xl transition-all duration-300 ease-in-out cursor-move"
                 style={{
