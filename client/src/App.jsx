@@ -58,6 +58,11 @@ function App() {
             setGameState('PLAYING');
             if (data.players) {
                 setPlayers(data.players);
+                // Update myPlayer with character info
+                const me = data.players.find(p => p.id === socket.id);
+                if (me) {
+                    setMyPlayer({ ...myPlayer, character: data.character, journal: data.journal });
+                }
             }
             // Auto open journal on start
             setIsJournalOpen(true);
@@ -130,6 +135,7 @@ function App() {
             );
         }
 
+        // Default to PLAYING state (chat/voting interface)
         return (
             <div className="flex flex-col h-full w-full bg-terminal-black text-terminal-green font-mono relative">
                 {/* Screen Header / Tabs */}
@@ -157,11 +163,11 @@ function App() {
                         <Chat
                             socket={socket}
                             messages={messages}
-                            myPlayer={myPlayer || {}}
+                            myPlayer={myPlayer || { character: 'Unknown' }}
                         />
                     ) : (
                         <Voting
-                            players={players}
+                            players={players.length > 0 ? players : []}
                             onVote={handleVote}
                             myId={socket.id}
                         />
