@@ -460,6 +460,10 @@ io.on('connection', (socket) => {
       }
     });
 
+    // Update all clients with the new player data (including characters)
+    console.log(`[GAME START] Room ${roomId}: Sending lobby_update with character assignments`);
+    io.to(roomId).emit('lobby_update', Object.values(room.players));
+
     console.log(`[GAME START] Room ${roomId}: Emitting game_state_change to PLAYING`);
     io.to(roomId).emit('game_state_change', 'PLAYING');
   });

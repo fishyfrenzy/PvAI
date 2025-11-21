@@ -42,9 +42,13 @@ function App() {
         socket.on('connect_error', onConnectError);
 
         socket.on('lobby_update', (updatedPlayers) => {
+            console.log("Lobby update received:", updatedPlayers);
             setPlayers(updatedPlayers);
             const me = updatedPlayers.find(p => p.id === socket.id);
-            if (me) setMyPlayer(me);
+            if (me) {
+                console.log("Updating myPlayer from lobby_update:", me);
+                setMyPlayer(me);
+            }
         });
 
         socket.on('game_state_change', (newState) => {
