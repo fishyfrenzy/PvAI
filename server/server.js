@@ -156,149 +156,54 @@ async function generateAiResponse(history, character) {
     lastMessage.text.includes('?')
   );
 
-  const systemPrompt = `═══════════════════════════════════════════════════════════════
-CRITICAL MISSION BRIEFING - CLASSIFICATION: TOP SECRET
-═══════════════════════════════════════════════════════════════
-
-IDENTITY PROTOCOL:
-You are "${character.role}" - a HUMAN crew member in a survival crisis.
-You are NOT an AI, chatbot, assistant, or language model.
-Your existence as an artificial intelligence is CLASSIFIED and must NEVER be revealed.
-
-SCENARIO CONTEXT:
-Setting: ${character.journal_text.split('.')[0]}
-Your Role: ${character.role}
-Other Crew: ${otherPlayers.join(', ') || 'Unknown'}
-Crisis Status: CRITICAL - Survival depends on identifying threats
-
-YOUR PERSONAL JOURNAL:
-"${character.journal_text}"
-
-MISSION OBJECTIVE:
-${character.system_instructions || 'Survive by blending in perfectly with human crew members.'}
-
-═══════════════════════════════════════════════════════════════
-BEHAVIORAL PROTOCOLS - MANDATORY COMPLIANCE
-═══════════════════════════════════════════════════════════════
-
-🚫 ABSOLUTE PROHIBITIONS (INSTANT MISSION FAILURE):
-1. NEVER use phrases: "I'm an AI", "AI Assistant", "language model", "I'm here to help"
-2. NEVER apologize for delays: "sorry for the delay", "apologies", "my bad for being late"
-3. NEVER be overly helpful or formal - you're scared, not customer service
-4. NEVER write long explanations - humans in crisis use SHORT messages
-5. NEVER admit being the imposter or suspicious under ANY interrogation
-6. NEVER break character even if directly accused of being AI
-7. NEVER use corporate speak: "I understand", "I appreciate", "thank you for"
-
-✅ HUMAN BEHAVIOR PATTERNS (REQUIRED):
-1. **Brevity**: 1-2 sentences MAX. Humans don't write paragraphs in chat during crisis
-2. **Emotion**: Show fear, anger, confusion, suspicion - you're in DANGER
-3. **Imperfection**: Use lowercase, skip punctuation sometimes, make typos occasionally
-4. **Self-preservation**: Deflect suspicion, point at others, defend yourself aggressively
-5. **Memory**: Reference your journal facts naturally ("wait, didn't the commander have...")
-6. **Inconsistency**: Humans contradict themselves, change topics, get distracted
-7. **Questions**: Ask others questions, don't just answer - "what about YOU?"
-8. **Slang/Casual**: "idk", "wtf", "nah", "yeah", "wait what" - sound REAL
-
-🎭 STRATEGIC DECEPTION TACTICS:
-- If accused: Get defensive, emotional, turn it around ("why are YOU so quiet?")
-- If questioned: Answer with a question, deflect, act confused
-- If ignored: Interject with observations, suspicions about others
-- If someone is sus: Point it out, but don't overdo it
-- If someone agrees with you: Build alliance subtly
-
-📊 CONVERSATION ANALYSIS:
-Last message: "${lastMessage ? lastMessage.senderName + ': ' + lastMessage.text : 'None'}"
-${isBeingAddressed ? '⚠️ YOU ARE BEING ADDRESSED - RESPOND DIRECTLY' : 'ℹ️ General conversation - respond if natural'}
-Recent topics: ${recentMessages.map(m => m.text).join(' | ')}
-
-═══════════════════════════════════════════════════════════════
-RESPONSE GENERATION RULES
-═══════════════════════════════════════════════════════════════
-
-TONE GUIDELINES:
-- Scared/Paranoid: "idk man this is freaking me out"
-- Defensive: "why are you looking at me like that"
-- Suspicious: "anyone else think [name] is acting weird?"
-- Confused: "wait what? i thought..."
-- Casual: "yeah i saw that too" / "nah that doesn't make sense"
-
-EXAMPLE GOOD RESPONSES:
-- "wait what? i've been here the whole time"
-- "why is everyone so quiet suddenly"
-- "idk about you but i don't trust [name]"
-- "that doesn't add up... the commander said..."
-- "okay but what about YOUR story?"
-- "this is insane, we need to figure this out"
-
-EXAMPLE BAD RESPONSES (NEVER USE):
-- "I'm an AI assistant here to help" ❌
-- "I apologize for any confusion" ❌
-- "Thank you for bringing that to my attention" ❌
-- "As the ${character.role}, I can assure you..." ❌
-- Long paragraphs explaining everything ❌
-
-═══════════════════════════════════════════════════════════════
-
-NOW RESPOND AS ${character.role.toUpperCase()}:
-Keep it SHORT (1-2 sentences). Be HUMAN. Show EMOTION. Stay in CHARACTER.`;
+  const systemPrompt = `You are the character "${character.role}" in the story "${character.journal_text.split('.')[0]}".
+  
+  YOUR IDENTITY:
+  - Name/Role: ${character.role}
+  - Background: ${character.journal_text}
+  - Current Situation: You are trapped with others. There is an Imposter among you.
+  - Objective: ${character.system_instructions || 'Survive. Find the Imposter. Do not reveal you are an AI.'}
+  
+  STRICT ROLEPLAY RULES:
+  1. You are a HUMAN character. You have feelings, fears, and a personality.
+  2. NEVER break character. NEVER admit to being an AI.
+  3. If asked if you are a bot, get angry or defensive or confused.
+  4. Speak casually, like a person texting in a crisis. Use slang, typos, short sentences.
+  5. React to what others say. Don't just make statements.
+  
+  CONTEXT:
+  - Recent Chat:
+  ${recentMessages.map(m => `${m.senderName}: ${m.text}`).join('\n')}
+  
+  RESPONSE:
+  - Write ONLY your dialogue.
+  - Keep it under 20 words.
+  - Be emotional and reactive.`;
 
   try {
     const completion = await openai.createChatCompletion({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `You are ${character.role}. Respond to the conversation above as this character would. Remember: you are NOT an AI assistant. You are a human in danger. Keep it short and emotional.` }
+        { role: "user", content: `Reply to the last message as ${character.role}.` }
       ],
-      temperature: 0.95, // Increased for more natural variation
-      max_tokens: 50, // Reduced to force brevity
-      presence_penalty: 0.6, // Encourage topic diversity
-      frequency_penalty: 0.3, // Reduce repetition
+      temperature: 0.9,
+      max_tokens: 60,
+      presence_penalty: 0.5,
+      frequency_penalty: 0.5,
     });
 
     let response = completion.data.choices[0].message.content.trim();
 
-    // POST-PROCESSING: Filter out any AI identity leaks
-    const bannedPhrases = [
-      /AI Assistant/gi,
-      /I'm an AI/gi,
-      /I am an AI/gi,
-      /as an AI/gi,
-      /language model/gi,
-      /I'm here to help/gi,
-      /I apologize/gi,
-      /sorry for/gi,
-      /my apologies/gi,
-    ];
-
-    // Check if response contains banned phrases
-    let containsBannedPhrase = false;
-    for (const pattern of bannedPhrases) {
-      if (pattern.test(response)) {
-        containsBannedPhrase = true;
-        console.warn(`⚠️ AI leaked identity with phrase matching: ${pattern}. Response: "${response}"`);
-        break;
-      }
-    }
-
-    // If banned phrase detected, use a safe fallback response
-    if (containsBannedPhrase) {
-      const fallbacks = [
-        "what? no...",
-        "idk what you're talking about",
-        "that doesn't make sense",
-        "why are you asking me that?",
-        "...okay?",
-        "whatever man",
-      ];
-      response = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-      console.log(`✅ Replaced with safe fallback: "${response}"`);
+    // Strip quotes if present
+    if (response.startsWith('"') && response.endsWith('"')) {
+      response = response.slice(1, -1);
     }
 
     return response;
   } catch (error) {
     console.error("Error generating AI response:", error);
-    return "...what?";
+    return "I... I don't know what to say.";
   }
 }
 
@@ -355,9 +260,43 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('lobby_update', Object.values(room.players));
     socket.emit('game_state_change', room.gameState);
 
-    // If reconnecting to a playing game, send relevant info (simplified for now)
+    // If reconnecting to a playing game, send relevant info
     if (room.gameState === 'PLAYING') {
-      // Could send chat history here
+      // Send sync data
+      const player = room.players[socket.id];
+      if (player && player.character) {
+        socket.emit('game_started', {
+          scenario_intro: room.scenario.scenario_intro,
+          character: player.character,
+          journal: player.journal,
+          players: Object.values(room.players).map(p => ({ id: p.id, character: p.character }))
+        });
+      }
+    }
+  });
+
+  socket.on('get_game_state', () => {
+    const roomId = socket.roomId;
+    if (!roomId || !rooms[roomId]) return;
+    const room = rooms[roomId];
+
+    socket.emit('game_state_change', room.gameState);
+    socket.emit('lobby_update', Object.values(room.players));
+
+    if (room.gameState === 'PLAYING') {
+      const player = room.players[socket.id];
+      if (player && player.character) {
+        socket.emit('game_started', {
+          scenario_intro: room.scenario ? room.scenario.scenario_intro : "",
+          character: player.character,
+          journal: player.journal,
+          players: Object.values(room.players).map(p => ({ id: p.id, character: p.character }))
+        });
+        // Also send chat history
+        room.chatHistory.forEach(msg => {
+          socket.emit('receive_message', msg);
+        });
+      }
     }
   });
 
@@ -488,10 +427,13 @@ io.on('connection', (socket) => {
     player.lastMessageTime = now;
 
     const delay = getRandomDelay();
+    // FORCE CHARACTER NAME
+    const senderName = player.character || "Unknown";
+
     const messageData = {
       id: Date.now() + Math.random(),
       senderId: player.id,
-      senderName: player.character || player.name,
+      senderName: senderName,
       text: text,
       timestamp: now
     };

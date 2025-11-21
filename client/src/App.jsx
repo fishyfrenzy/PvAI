@@ -32,6 +32,7 @@ function App() {
         const onConnect = () => {
             console.log('Connected to server');
             setIsConnected(true);
+            s.emit('get_game_state');
         };
         const onDisconnect = () => {
             console.log('Disconnected from server');
@@ -127,6 +128,14 @@ function App() {
     const renderScreenContent = () => {
         console.log('Rendering screen, state:', gameState);
         if (gameState === 'STARTING') {
+            // Safety timeout: if stuck in STARTING for too long, ask for state
+            setTimeout(() => {
+                if (gameState === 'STARTING' && socket) {
+                    console.log('Stuck in STARTING, requesting state update...');
+                    socket.emit('get_game_state');
+                }
+            }, 5000);
+
             return (
                 <div className="flex flex-col items-center justify-center h-full bg-terminal-black text-terminal-green font-mono p-4 animate-pulse">
                     <h2 className="text-xl font-bold">ESTABLISHING SECURE CONNECTION…</h2>
@@ -216,4 +225,40 @@ function App() {
     );
 }
 
-export default App;
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null, errorInfo: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        this.setState({ error, errorInfo });
+        console.error("Uncaught error:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="bg-red-900 text-white p-4 h-screen overflow-auto font-mono">
+                    <h1 className="text-2xl font-bold mb-4">CRITICAL SYSTEM FAILURE</h1>
+                    <p className="mb-2">ERROR: {this.state.error && this.state.error.toString()}</p>
+                    <pre className="text-xs bg-black p-2 rounded">{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
+export default function AppWithBoundary() {
+    return (
+        <ErrorBoundary>
+            <App />
+        </ErrorBoundary>
+    );
+}

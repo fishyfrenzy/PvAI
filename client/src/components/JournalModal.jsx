@@ -48,9 +48,10 @@ const JournalModal = ({ isOpen, onClose, character, journal, scenarioIntro }) =>
             <div
                 className="relative paper-texture p-8 transform shadow-2xl transition-all duration-300 ease-in-out cursor-move"
                 style={{
-                    width: '80vw',
-                    maxWidth: '1200px',
-                    aspectRatio: '16/9',
+                    height: '85vh',
+                    width: 'auto',
+                    aspectRatio: '9/16',
+                    maxWidth: '90vw',
                     transform: `translate(${position.x}px, ${position.y}px)`,
                     userSelect: isDragging ? 'none' : 'auto'
                 }}
@@ -98,8 +99,8 @@ const JournalModal = ({ isOpen, onClose, character, journal, scenarioIntro }) =>
                             />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-8 h-full">
-                            {/* Left Column */}
+                        <div className="flex flex-col gap-6 h-full">
+                            {/* Top Section */}
                             <div>
                                 <h1 className="text-3xl font-bold mb-4 text-center border-b-2 border-gray-400 pb-2">
                                     Confidential Log
@@ -112,18 +113,18 @@ const JournalModal = ({ isOpen, onClose, character, journal, scenarioIntro }) =>
 
                                 <div className="mb-4">
                                     <span className="block text-lg text-gray-500 mb-1">Mission Brief:</span>
-                                    <p className="text-xl leading-relaxed">{scenarioIntro}</p>
+                                    <p className="text-lg leading-relaxed">{scenarioIntro}</p>
                                 </div>
                             </div>
 
-                            {/* Right Column */}
-                            <div>
+                            {/* Bottom Section */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar-paper pr-2">
                                 <div className="mb-4">
                                     <span className="block text-lg text-gray-500 mb-1">Personal Notes:</span>
                                     <p className="text-xl leading-relaxed whitespace-pre-wrap">{journal}</p>
                                 </div>
 
-                                <div className="mt-8 text-center">
+                                <div className="mt-8 text-center pb-4">
                                     <div className="text-lg text-red-800 font-bold border-2 border-red-800 p-2 rotate-[-2deg] inline-block">
                                         TOP SECRET // EYES ONLY
                                     </div>
