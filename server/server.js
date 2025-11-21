@@ -447,7 +447,7 @@ io.on('connection', (socket) => {
           scenario_intro: room.scenario.scenario_intro,
           character: room.players[pid].character,
           journal: room.players[pid].journal,
-          players: Object.values(room.players).map(p => ({ name: p.name, id: p.id, character: p.character })) // Public info
+          players: Object.values(room.players).map(p => ({ id: p.id, character: p.character })) // Only character names, no user names
         };
         console.log(`Emitting game_started to player ${pid} (${room.players[pid].name}) in room ${roomId}`);
         socketDest.emit('game_started', dossierData);
@@ -579,6 +579,61 @@ io.on('connection', (socket) => {
         console.log(`Deleting empty room ${roomId}`);
         delete rooms[roomId];
       }
+    }
+  });
+
+  // Admin endpoints
+  socket.on('admin_auth', (key) => {
+    // Simple auth - in production use proper authentication
+    if (key === 'admin123') {
+      socket.isAdmin = true;
+      console.log('Admin authenticated:', socket.id);
+    }
+  });
+
+  socket.on('admin_get_rooms', () => {
+    if (!socket.isAdmin) return;
+
+    const roomsData = Object.values(rooms).map(room => ({
+      id: room.id,
+      gameState: room.gameState,
+      playerCount: Object.keys(room.players).length,
+      messageCount: room.chatHistory.length,
+      players: Object.values(room.players).map(p => ({
+        id: p.id,
+        name: p.name,
+        character: p.character,
+        isBot: p.isBot
+      }))
+    }));
+
+    socket.emit('admin_rooms_update', roomsData);
+  });
+
+  socket.on('admin_close_room', (roomId) => {
+    if (!socket.isAdmin) return;
+
+    const room = rooms[roomId];
+    if (room) {
+      io.to(roomId).emit('error_message', 'Room closed by administrator.');
+      delete rooms[roomId];
+      console.log(`Admin closed room ${roomId}`);
+    }
+  });
+
+  socket.on('admin_kick_player', ({ roomId, playerId }) => {
+    if (!socket.isAdmin) return;
+
+    const room = rooms[roomId];
+    if (room && room.players[playerId]) {
+      const socketToKick = io.sockets.sockets.get(playerId);
+      if (socketToKick) {
+        socketToKick.emit('error_message', 'You have been kicked by an administrator.');
+        socketToKick.disconnect();
+      }
+      delete room.players[playerId];
+      io.to(roomId).emit('lobby_update', Object.values(room.players));
+      console.log(`Admin kicked player ${playerId} from room ${roomId}`);
     }
   });
 });
