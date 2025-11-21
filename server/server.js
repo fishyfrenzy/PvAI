@@ -193,7 +193,14 @@ async function generateAiResponse(history, character) {
       frequency_penalty: 0.5,
     });
 
-    let response = completion.data.choices[0].message.content.trim();
+    let response = completion.data.choices[0].message.content;
+
+    if (!response) {
+      console.warn("AI returned empty response");
+      return "...";
+    }
+
+    response = response.trim();
 
     // Strip quotes if present
     if (response.startsWith('"') && response.endsWith('"')) {
@@ -203,7 +210,15 @@ async function generateAiResponse(history, character) {
     return response;
   } catch (error) {
     console.error("Error generating AI response:", error);
-    return "I... I don't know what to say.";
+    // Fallback responses to keep the game going
+    const fallbacks = [
+      "...",
+      "I don't know what to say.",
+      "This is bad.",
+      "We need to do something.",
+      "Why is this happening?"
+    ];
+    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
   }
 }
 
