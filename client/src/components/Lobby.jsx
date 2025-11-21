@@ -22,6 +22,12 @@ const Lobby = ({ socket, players, onStartGame }) => {
         });
     };
 
+    const handleCloseServer = () => {
+        if (confirm('Are you sure you want to close this server? All players will be disconnected.')) {
+            socket.emit('close_server');
+        }
+    };
+
     return (
         <div className="flex flex-col items-center justify-center h-full bg-terminal-black text-terminal-green font-mono p-4 relative">
             <h1 className="text-2xl mb-4 font-bold tracking-widest animate-pulse">THE TURING TRAP</h1>
@@ -106,6 +112,17 @@ const Lobby = ({ socket, players, onStartGame }) => {
                     >
                         EXECUTE SCENARIO
                     </button>
+
+                    {/* Show close button only to the first player (host) */}
+                    {players.length > 0 && players[0].id === socket.id && (
+                        <button
+                            onClick={handleCloseServer}
+                            className="w-full mt-2 border border-terminal-alert hover:bg-terminal-alert hover:text-black text-terminal-alert font-bold py-2 px-4 transition-all uppercase tracking-widest text-xs"
+                        >
+                            CLOSE SERVER
+                        </button>
+                    )}
+
                     <p className="text-[10px] text-center mt-2 opacity-50">WAITING FOR DIRECTOR...</p>
                 </div>
             )}
