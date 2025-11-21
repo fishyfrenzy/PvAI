@@ -56,15 +56,15 @@ const Chat = ({ socket, messages, myPlayer }) => {
                 SECURE_CHANNEL_V.9
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 pt-6 space-y-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-scroll p-2 pt-6 space-y-2" style={{ overflowY: 'scroll', maxHeight: '100%' }}>
                 {messages.map((msg) => (
                     <div key={msg.id} className={`flex flex-col ${msg.senderId === socket.id ? 'items-end' : 'items-start'}`}>
-                        <span className="text-[10px] opacity-50 mb-0.5">
-                            {msg.senderName} {msg.senderId === socket.id ? '[YOU]' : ''}
+                        <span className={`text-xs font-bold mb-0.5 ${msg.senderId === socket.id ? 'text-cyan-400' : 'text-yellow-400'}`}>
+                            {msg.senderName}
                         </span>
                         <div className={`max-w-[90%] p-1.5 border text-xs ${msg.senderId === socket.id
-                                ? 'border-terminal-green bg-terminal-green/10'
-                                : 'border-terminal-dim bg-terminal-dim/5'
+                            ? 'border-terminal-green bg-terminal-green/10 text-terminal-green'
+                            : 'border-terminal-dim bg-terminal-dim/5 text-terminal-dim'
                             }`}>
                             {msg.text}
                         </div>
@@ -73,10 +73,10 @@ const Chat = ({ socket, messages, myPlayer }) => {
 
                 {pendingMessages.map((msg) => (
                     <div key={msg.id} className="flex flex-col items-end opacity-50">
-                        <span className="text-[10px] mb-0.5">
-                            {msg.senderName} [ENCRYPTING...]
+                        <span className="text-xs font-bold mb-0.5 text-cyan-400">
+                            {msg.senderName}
                         </span>
-                        <div className="max-w-[90%] p-1.5 border border-terminal-green border-dashed text-xs">
+                        <div className="max-w-[90%] p-1.5 border border-terminal-green border-dashed text-xs text-terminal-green">
                             {msg.text}
                         </div>
                     </div>
@@ -84,7 +84,7 @@ const Chat = ({ socket, messages, myPlayer }) => {
                 <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-2 border-t border-terminal-green bg-black">
+            <div className="p-2 border-t border-terminal-green bg-black flex-shrink-0">
                 <form onSubmit={handleSend} className="flex gap-2">
                     <input
                         type="text"

@@ -8,10 +8,7 @@ const Voting = ({ players, onVote, myId }) => {
             <div className="space-y-4">
                 {players.map((p) => (
                     <div key={p.id} className="flex items-center justify-between p-2 border border-terminal-dim/50 hover:border-terminal-green transition-colors">
-                        <div>
-                            <div className="font-bold">{p.character || p.name}</div>
-                            <div className="text-xs opacity-50">{p.name}</div>
-                        </div>
+                        <div className="font-bold text-yellow-400">{p.character || p.name}</div>
 
                         {p.id !== myId && (
                             <button
